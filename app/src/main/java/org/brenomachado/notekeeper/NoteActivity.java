@@ -3,8 +3,10 @@ package org.brenomachado.notekeeper;
 import android.content.Intent;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,6 +26,7 @@ public class NoteActivity extends AppCompatActivity {
     private EditText mTextNoteDetail;
     private int mNotePosition;
     private boolean mIsCancelling;
+    private NoteActivityViewModel mViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +34,18 @@ public class NoteActivity extends AppCompatActivity {
         setContentView(R.layout.activity_note);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        ViewModelProvider viewModelProvider = new ViewModelProvider(getViewModelStore(),
+                ViewModelProvider.AndroidViewModelFactory.getInstance(getApplication()));
+
+        mViewModel = viewModelProvider.get(NoteActivityViewModel.class);
+
+        if (mViewModel.mIsNewlyCreated && savedInstanceState != null) {
+            mViewModel.restoreState(savedInstanceState);
+        }
+
+        mViewModel.mIsNewlyCreated = false;
+
         mSpinnerCourses = findViewById(R.id.spinner_course);
         List<CourseInfo> courses = DataManager.getInstance().getCourses();
         ArrayAdapter<CourseInfo> adapterCourses =
@@ -39,12 +54,22 @@ public class NoteActivity extends AppCompatActivity {
         mSpinnerCourses.setAdapter(adapterCourses);
 
         readDisplayStateValue();
+        saveOriginalNoteValues();
 
         mTextNoteTitle = findViewById(R.id.text_title);
         mTextNoteDetail = findViewById(R.id.text_details);
 
         if (!mIsNewNote)
             displayNote(mSpinnerCourses, mTextNoteTitle, mTextNoteDetail);
+    }
+
+    private void saveOriginalNoteValues() {
+        if(mIsNewNote)
+            return;
+
+        mViewModel.mOriginalNoteCourseId = mNote.getCourse().getCourseId();
+        mViewModel.mOriginalNoteTitle = mNote.getTitle();
+        mViewModel.mOriginalNoteText = mNote.getText();
     }
 
     private void displayNote(Spinner spinnerCourses, EditText textNoteTitle, EditText textNoteText) {
@@ -58,7 +83,7 @@ public class NoteActivity extends AppCompatActivity {
     private void readDisplayStateValue() {
         Intent intent = getIntent();
         int notePosition = intent.getIntExtra(NOTE_POSITION, POSITION_NOT_SET);
-        mIsNewNote = notePosition == -POSITION_NOT_SET;
+        mIsNewNote = notePosition == POSITION_NOT_SET;
         if (mIsNewNote) {
             createNewNote();
         }else {
@@ -111,14 +136,32 @@ public class NoteActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
+    protected void onPause() {
+        super.onPause();
         if (mIsCancelling) {
             if (mIsNewNote)
                 DataManager.getInstance().removeNote(mNotePosition);
-        }else {
+            else {
+                storePreviousNoteValues();
+            }
+        } else {
             saveNote();
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        if (outState != null)
+            mViewModel.saveState(outState);
+    }
+
+    private void storePreviousNoteValues() {
+        CourseInfo courseInfo = DataManager.getInstance().getCourse(mViewModel.mOriginalNoteCourseId);
+        mNote.setCourse(courseInfo);
+        mNote.setTitle(mViewModel.mOriginalNoteTitle);
+        mNote.setText(mViewModel.mOriginalNoteText);
     }
 
     private void saveNote() {
