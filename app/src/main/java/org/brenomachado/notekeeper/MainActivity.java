@@ -9,6 +9,7 @@ import android.view.Menu;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
+import androidx.annotation.NonNull;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -22,7 +23,7 @@ import org.brenomachado.notekeeper.databinding.ActivityMainBinding;
 
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity {
     private NoteRecyclerAdapter mNoteRecyclerAdapter;
 
     private AppBarConfiguration mAppBarConfiguration;
@@ -53,6 +54,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
+
+        navigationView.setNavigationItemSelectedListener(
+                new NavigationView.OnNavigationItemSelectedListener() {
+                    @Override
+                    public boolean onNavigationItemSelected(MenuItem menuItem) {
+                        selectDrawerItem(menuItem);
+                        return true;
+                    }
+                });
 
         initializeDisplayContent();
     }
@@ -87,8 +97,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         recyclerNotes.setAdapter(mNoteRecyclerAdapter);
     }
 
-    @Override
-    public boolean onNavigationItemSelected(MenuItem item){
+    public void selectDrawerItem(@NonNull MenuItem item) {
         int id = item.getItemId();
 
         switch (id) {
@@ -98,10 +107,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case R.id.nav_courses:
                 handlerSelection("Courses");
                 break;
+            case R.id.nav_share:
+                handlerSelection("Share");
+                break;
+            case R.id.nav_send:
+                handlerSelection("Send");
+                break;
         }
-
-        return true;
-
     }
 
     private void handlerSelection(String notes) {
