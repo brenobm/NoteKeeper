@@ -114,15 +114,40 @@ public class NoteActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_send_email) {
-            sendEmail();
-            return true;
-        } else if (id == R.id.action_cancel) {
-            mIsCancelling = true;
-            finish();
+        switch (id) {
+            case R.id.action_send_email:
+                sendEmail();
+                return true;
+            case R.id.action_cancel:
+                mIsCancelling = true;
+                finish();
+                break;
+            case R.id.action_next:
+                moveNext();
+                break;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem item = menu.findItem(R.id.action_next);
+        int lastNoteIndex = DataManager.getInstance().getNotes().size() - 1;
+        item.setEnabled(mNotePosition < lastNoteIndex);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    private void moveNext() {
+        saveNote();
+
+        ++mNotePosition;
+        mNote = DataManager.getInstance().getNotes().get(mNotePosition);
+
+        saveOriginalNoteValues();
+        displayNote(mSpinnerCourses, mTextNoteTitle, mTextNoteDetail);
+
+        invalidateOptionsMenu();
     }
 
     private void sendEmail() {
